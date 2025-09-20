@@ -74,6 +74,7 @@ export function StartupForm({ onSubmit }: StartupFormProps) {
   const [isDragging, setIsDragging] = React.useState(false);
   const [uploadingFiles, setUploadingFiles] = React.useState<UploadingFile[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   React.useEffect(() => {
     const uploadedFilesData = uploadingFiles
@@ -147,7 +148,7 @@ export function StartupForm({ onSubmit }: StartupFormProps) {
           );
           toast({
             title: 'Upload Successful',
-            description: `File "${file.name}" has been uploaded.`,
+            description: `File "${file.file.name}" has been uploaded.`,
           });
         });
       }
@@ -189,7 +190,11 @@ export function StartupForm({ onSubmit }: StartupFormProps) {
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(true); };
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(false); handleFiles(e.dataTransfer.files); };
   const onFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => { handleFiles(e.target.files); };
-  const triggerFormSubmit = form.handleSubmit(() => onSubmit(new FormData(form.control.getFieldState._formRef.current)));
+  const triggerFormSubmit = form.handleSubmit(() => {
+    if (formRef.current) {
+      onSubmit(new FormData(formRef.current));
+    }
+  });
 
   return (
     <div className="mx-auto max-w-3xl animate-in fade-in-50 duration-500">
@@ -202,7 +207,7 @@ export function StartupForm({ onSubmit }: StartupFormProps) {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={triggerFormSubmit} className="space-y-8">
+            <form ref={formRef} onSubmit={triggerFormSubmit} className="space-y-8">
               <div className="space-y-6">
                 <FormField
                   control={form.control}
