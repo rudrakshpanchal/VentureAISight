@@ -2,12 +2,18 @@
 import { getStorage, ref, getBytes, deleteObject } from 'firebase-admin/storage';
 import { getFirebaseAdminApp } from './admin-config';
 
+// Initialize app once at module level
 getFirebaseAdminApp();
-const bucket = getStorage().bucket();
+
+// Lazily get the bucket inside the functions to ensure app is initialized.
+function getBucket() {
+    return getStorage().bucket();
+}
 
 // This function is designed to run on the server.
 export async function getFileContents(filePath: string): Promise<string> {
     try {
+        const bucket = getBucket();
         const file = bucket.file(filePath);
         const contents = await file.download();
         const buffer = contents[0];
@@ -22,6 +28,7 @@ export async function getFileContents(filePath: string): Promise<string> {
 // This function is designed to run on the server.
 export async function deleteFile(filePath: string): Promise<void> {
     try {
+        const bucket = getBucket();
         const file = bucket.file(filePath);
         await file.delete();
         console.log(`Successfully deleted ${filePath}`);
