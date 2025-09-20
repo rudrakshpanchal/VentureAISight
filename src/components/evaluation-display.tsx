@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Download, Lightbulb, ShieldAlert, Siren, Sparkles, ThumbsDown, ThumbsUp, Zap } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 type EvaluationDisplayProps = {
   result: Extract<EvaluationResult, { success: true }>;
@@ -35,8 +37,41 @@ function SwotCard({ title, content, icon }: { title: string; content: string; ic
 }
 
 export function EvaluationDisplay({ result }: EvaluationDisplayProps) {
-  const handlePrint = () => {
-    window.print();
+  const handleExport = async () => {
+    const reportElement = document.getElementById('printable-area');
+    if (!reportElement) return;
+
+    // Temporarily remove the 'no-print' class from elements we want to capture
+    const noPrintElements = reportElement.querySelectorAll('.no-print-pdf');
+    noPrintElements.forEach(el => el.classList.remove('no-print-pdf'));
+    
+    // Hide the button itself during capture
+    const exportButton = document.getElementById('export-button');
+    if (exportButton) exportButton.style.display = 'none';
+
+    const canvas = await html2canvas(reportElement, {
+      scale: 2, // Higher scale for better quality
+      useCORS: true,
+      backgroundColor: '#0a0a0a', // Match dark theme background
+      onclone: (document) => {
+        // This is a workaround to ensure tailwind dark mode styles are applied
+        document.documentElement.classList.add('dark');
+      }
+    });
+
+    // Restore the button and classes
+    if (exportButton) exportButton.style.display = 'inline-flex';
+    noPrintElements.forEach(el => el.classList.add('no-print-pdf'));
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: 'p',
+      unit: 'px',
+      format: [canvas.width, canvas.height],
+    });
+
+    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+    pdf.save(`${result.startupName}-evaluation.pdf`);
   };
 
   return (
@@ -46,7 +81,7 @@ export function EvaluationDisplay({ result }: EvaluationDisplayProps) {
           <h1 className="text-4xl font-extrabold tracking-tight text-primary">{result.startupName}</h1>
           <p className="mt-1 text-lg text-muted-foreground">AI-Generated Investment Analysis</p>
         </div>
-        <Button onClick={handlePrint} className="no-print">
+        <Button id="export-button" onClick={handleExport} className="no-print">
           <Download className="mr-2 h-4 w-4" />
           Export Report
         </Button>
